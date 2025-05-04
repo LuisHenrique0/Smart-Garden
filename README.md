@@ -1,1 +1,3 @@
-# Site de armazenamento de dados para hortas
+# Smart Garden 
+
+Site de armazenamento de dados para hortas
