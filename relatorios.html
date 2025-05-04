@@ -1,0 +1,133 @@
+<?php
+$api_key = 'IA link';
+
+
+function gerarRelatorioIA($titulo, $descricao, $categoria, $data) {
+    $url = 'https://api-inference.huggingface.co/models/gpt2'; // Usando o modelo GPT-2
+
+   
+    $prompt = "Crie um relatório com as seguintes informações:\n";
+    $prompt .= "Título: $titulo\n";
+    $prompt .= "Descrição: $descricao\n";
+    $prompt .= "Categoria: $categoria\n";
+    $prompt .= "Data: $data\n";
+    $prompt .= "Relatório:";
+
+    // Configuração da requisição HTTP
+    $data = [
+        'inputs' => $prompt,
+    ];
+
+    $options = [
+        'http' => [
+            'method' => 'POST',
+            'header' => [
+                'Content-Type: application/json',
+                'Authorization: Bearer ' . $api_key,
+            ],
+            'content' => json_encode($data),
+        ]
+    ];
+
+    $context = stream_context_create($options);
+    $result = file_get_contents($url, false, $context);
+
+    if ($result === FALSE) {
+        return 'Erro ao gerar relatório com IA.';
+    }
+
+    // Parse da resposta da API
+    $response = json_decode($result, true);
+    return $response[0]['generated_text'] ?? 'Não foi possível gerar o relatório.';
+}
+
+// Verificar se o formulário foi enviado
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !empty($_POST['titulo']) && !empty($_POST['descricao']) && !empty($_POST['data']) && !empty($_POST['categoria'])) {
+    $titulo = $_POST['titulo'];
+    $descricao = $_POST['descricao'];
+    $data = $_POST['data'];
+    $categoria = $_POST['categoria'];
+
+    // Chama a função para gerar o relatório usando IA
+    $relatorioGerado = gerarRelatorioIA($titulo, $descricao, $categoria, $data);
+
+    // Salva o relatório no arquivo (ou banco de dados)
+    $newRelatorio = $titulo . "|" . $descricao . "|" . $data . "|" . $categoria . "|" . $relatorioGerado;
+    file_put_contents('relatorios.txt', $newRelatorio . PHP_EOL, FILE_APPEND);
+}
+?>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="dados.css" />
+  <title>Relatórios</title>
+</head>
+<body>
+
+  <nav>
+    <div class="logo">
+      <img src="./imagens/growth.png" alt="Logo Smart Garden" />
+    </div>
+    <ul class="bar">
+      <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+      <li class="nav-item"><a href="minhas-hortas.html" class="nav-link">Minhas Hortas</a></li>
+      <li class="nav-item"><a href="plantas.html" class="nav-link">Plantas</a></li>
+      <li class="nav-item"><a href="anotacoes.html" class="nav-link">Anotações</a></li>
+      <li class="nav-item"><a href="relatorios.html" class="nav-link">Relatórios</a></li>
+      <li class="nav-item"><a href="login.html" class="nav-link">Login</a></li>
+    </ul>
+
+    <div class="mobile-menu-icon">
+      <button onclick="menuShow()"><img class="icon" src="./imagens/menu.png" alt="Menu" /></button>
+    </div>
+  </nav>
+
+  <div class="mobile-menu">
+    <ul class="bar">
+      <li class="nav-item"><a href="index.html" class="nav-link">Home</a></li>
+      <li class="nav-item"><a href="minhas-hortas.html" class="nav-link">Minhas Hortas</a></li>
+      <li class="nav-item"><a href="plantas.html" class="nav-link">Plantas</a></li>
+      <li class="nav-item"><a href="anotacoes.html" class="nav-link">Anotações</a></li>
+      <li class="nav-item"><a href="relatorios.html" class="nav-link">Relatórios</a></li>
+      <li class="nav-item"><a href="login.html" class="nav-link">Login</a></li>
+    </ul>
+  </div>
+
+  <hr />
+  
+  <h1>Relatórios</h1>
+  <form action="relatorios.php" method="POST">
+    <input type="text" name="titulo" placeholder="Título do Relatório" required />
+    <textarea name="descricao" placeholder="Descrição do Relatório" required></textarea>
+    <input type="date" name="data" required />
+    <input type="text" name="categoria" placeholder="Categoria do Relatório" required />
+    <button type="submit">Gerar Relatório</button>
+  </form>
+
+  <h2>Relatórios Registrados</h2>
+  <div class="relatorios-container">
+    <?php 
+    $relatoriosFile = 'relatorios.txt';
+    $relatorios = file_exists($relatoriosFile) ? file($relatoriosFile, FILE_IGNORE_NEW_LINES) : [];
+    
+    foreach ($relatorios as $relatorio): 
+        list($titulo, $descricao, $data, $categoria, $relatorioGerado) = explode('|', $relatorio); 
+    ?>
+      <div class="relatorio">
+        <h3><?php echo htmlspecialchars($titulo); ?></h3>
+        <p><strong>Data:</strong> <?php echo htmlspecialchars($data); ?></p>
+        <p><strong>Categoria:</strong> <?php echo htmlspecialchars($categoria); ?></p>
+        <p><strong>Descrição:</strong> <?php echo nl2br(htmlspecialchars($descricao)); ?></p>
+        <h4>Relatório Gerado pela IA:</h4>
+        <p><?php echo nl2br(htmlspecialchars($relatorioGerado)); ?></p>
+      </div>
+    <?php endforeach; ?>
+  </div>
+
+  <script src="menu.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

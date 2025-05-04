@@ -1,0 +1,77 @@
+
+<?php
+// Conexão com o banco de dados
+$host = 'localhost'; // ou o endereço do seu servidor
+$dbname = 'smart_garden';
+$username = 'root';
+$password = ''; // insira a senha se necessário
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    echo "Erro ao conectar com o banco de dados: " . $e->getMessage();
+    exit;
+}
+
+// Verificando se os dados do formulário foram enviados
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $nome = $_POST['nome'];
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+
+    // Verificando se o e-mail já está cadastrado
+    $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
+
+    if ($user) {
+        $message = "Esse e-mail já está cadastrado!";
+    } else {
+        // Inserindo o novo usuário no banco de dados
+        $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha) VALUES (?, ?, ?)");
+        $stmt->execute([$nome, $email, password_hash($password, PASSWORD_DEFAULT)]);
+
+        $message = "Cadastro realizado com sucesso!";
+    }
+}
+?>
+
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="cadastro.css" />
+    <title>Cadastro</title>
+</head>
+<body>
+    <img src="imagens/login.jpg" alt="Plantação" class="back">
+    <div class="overlay"></div>
+
+    <div class="container">
+    <h1>Cadastre-se</h1>
+
+    <!-- Mensagem de erro ou sucesso -->
+    <?php if (isset($message)): ?>
+        <p><?= $message ?></p>
+    <?php endif; ?>
+
+    <form action="cadastro.php" method="POST">
+        
+        <label for="nome">Nome:</label><br>
+        <input type="text" id="nome" name="nome" required><br><br>
+
+        <label for="email">Email:</label><br>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="password">Senha:</label><br>
+        <input type="password" id="password" name="password" required><br><br>
+
+        <input type="submit" value="Cadastrar">
+    </form>
+
+    <p>Já tem uma conta? <a href="login.php">Faça login aqui</a></p>
+</div>
+</body>
+</html>
